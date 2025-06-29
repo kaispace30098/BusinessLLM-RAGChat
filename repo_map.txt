@@ -1,0 +1,29 @@
+BusinessLLMRAGChat/
+├── pyproject.toml                # Poetry project config (dependencies & dev-dependencies)
+├── README.md                     # Project overview, quickstart, architecture
+├── scripts/                      # Data preparation & conversion scripts
+│   └── convert_oasst.py          # Download & parse OpenAssistant → train/eval JSONL → upload to S3
+├── src/                          # Your main Python package
+│   └── businessllmragchat/       # Python module root
+│       ├── __init__.py
+│       ├── fine_tune/            # Fine‑tuning & evaluation logic
+│       │   ├── train.py          # LoRA/QLoRA/SFT training pipeline
+│       │   └── evaluate.py       # BLEU, cosine, LLM‑judge evaluation
+│       ├── rag_langgraph/        # RAG retrieval & prompt‑assembly
+│       │   └── rag_pipeline.py
+│       └── inference_api/        # Inference service code
+│           ├── serve_vllm.py     # vLLM API server entrypoint
+│           └── fastapi_app.py    # FastAPI application (app.py)
+├── tests/                        # Unit tests (pytest)
+│   ├── test_train.py
+│   └── test_inference.py
+├── inference_api/                # Docker configs & requirements for inference services
+│   ├── requirements_vllm.txt     # Python deps for vLLM container
+│   ├── Dockerfile.vllm           # CUDA‑based image to run vLLM
+│   ├── requirements_api.txt      # Python deps for FastAPI container
+│   ├── Dockerfile.fastapi        # Slim image to run FastAPI
+│   ├── serve_vllm.py             # (copied or symlinked) vLLM server script
+│   └── fastapi_app.py            # (copied or symlinked) FastAPI app script
+└── streamlit_demo/               # Frontend demo for Streamlit Cloud
+    ├── requirements.txt          # Streamlit, LangGraph, FAISS, requests, etc.
+    └── app.py                    # Streamlit chat UI calling FastAPI
