@@ -1,0 +1,12 @@
+transformers
+peft
+boto3
+accelerate
+safetensors
+python-dotenv
+
+modal
+vllm
+transformers
+accelerate
+torch
