@@ -1,2 +1,6 @@
 /.env
 .env
+merge_llama3
+vllm/merge_llama3
+*/merge_llama3
+vllm/merged_llama3/
