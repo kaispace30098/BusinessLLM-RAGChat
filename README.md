@@ -1,26 +1,17 @@
-# **BusinessLLMRAGChat**
+# State Accountability Business Rule Assistant
 
-A full-stack, production-grade LLM application that fine-tunes open-source conversational models and deploys them for efficient Retrieval-Augmented Generation (RAG) with LangGraph and vLLM — packaged with Streamlit Cloud UI for business demo.
+This project implements a Retrieval-Augmented Generation (RAG) pipeline over your state accountability business‐rule corpus, with:
 
+ 
+1. **Modal GPU API with vLLM** – completed remote inference endpoint  
+2. **LangGraph RAG integration** – Work in progress 
 ---
-
-## 🚀 Project Overview
-
-**BusinessLLMRAGChat** is an end-to-end project combining **LLM fine-tuning**, **evaluation**, **accelerated inference**, and **RAG chat demo** to showcase how fine-tuned models can be integrated with external knowledge for business rule reasoning and QA.
-
-This project simulates a real-world pipeline for fine-tuning open-source LLMs (LoRA/SFT), evaluating performance (BLEU, cosine, judge), comparing multiple runs (MLflow), and deploying the best-performing model using `FastAPI + vLLM` for inference.
-
-It ends with a LangGraph-powered **Streamlit Chat App** that supports business-rule-aware question answering and semantic search (via FAISS).
-
----
-
-## 🧠 Architecture
 
 ```
 +----------------+       +----------------+       +------------------+       +------------------+
 |                |       |                |       |                  |       |                  |
-|   User Input   +------>+  Streamlit UI  +------>+     FastAPI      +------>+      vLLM        |
-|                |       |  (LangGraph)   |       |   (EC2 Inference) |       | (Accelerated LLM)|
+|   User Input   +------>+  Streamlit UI  +------>+      Modal       +------>+      vLLM        |
+|                |       |  (LangGraph)   |       | (Remote GPU API) |       | (Accelerated LLM)|
 +----------------+       +----------------+       +------------------+       +------------------+
                                                    |
                           +------------------------+-------------------------+
@@ -32,112 +23,127 @@ It ends with a LangGraph-powered **Streamlit Chat App** that supports business-r
 
 ---
 
-## 📦 Techniques Used
 
-### 📊 **1. Dataset & Preprocessing**
-- OpenAssistant Conversations Dataset (OASST1)
-- Converted to `{"text": "Instruction: ...\nResponse: ..."}` format
-- Stored in S3 (`train.jsonl`, `eval.jsonl`)
+1. **Modal GPU API with vLLM**
 
-### 🔧 **2. Fine-Tuning Techniques**
-- LoRA (Low-Rank Adaptation)
-- SFT (Supervised Fine-Tuning)
-- Unsloth: Speed-optimized PEFT trainer
-- Hugging Face `transformers` + `peft` + `datasets`
+## 🚀 Project Overview
 
-### 📈 **3. Experiment Tracking**
-- MLflow: Monitor runs, compare BLEU, cosine similarity
-- Metrics logging + artifact versioning
-- Multiple runs: compare LoRA vs. SFT
-
-### 🏎️ **4. Inference Engine**
-- **vLLM**: Token streaming + KV cache optimization
-- FastAPI for RESTful inference interface
-- Dockerized microservices (FastAPI + vLLM split or combined on EC2 G5)
-
-### 🔍 **5. RAG (Retrieval-Augmented Generation)**
-- FAISS similarity search over business rule documents
-- LangGraph handles prompt routing and similarity response
-- Streamlit connects to FastAPI and triggers semantic retrieval
-
-### 🎯 **6. Deployment**
-- Streamlit Cloud frontend demo (LangGraph + chat history)
-- EC2 (G5) for both inference containers
-- Docker + Poetry for environment reproducibility
+- Fine-tune Meta LLaMA 3 8B with **QLoRA** (quantized LoRA) on a custom QA dataset combining:
+  - [Stanford Alpaca](https://github.com/tatsu-lab/stanford_alpaca)
+  - [OpenAssistant (OASST1)](https://huggingface.co/datasets/OpenAssistant/oasst1)
+- Use AWS S3 for dataset and adapter checkpoint storage.
+- Merge LoRA adapter into the base LLaMA 3 8B model.
+- Upload merged model to Hugging Face Hub.
+- Deploy the merged model on **modal.ai** GPU containers leveraging **vLLM** for fast and memory-efficient inference.
+- Provide a lightweight client to interact remotely with the deployed model.
+- Prepare for integration as a LangGraph RAG LLM backend.
 
 ---
-
 ## 🗂 Directory Structure
+data
+├── convert_oasst_alpaca.py # (unused) data conversion script
 
-```bash
-BusinessLLMRAGChat/
-├── pyproject.toml                 # Poetry config
-├── README.md
-├── scripts/
-│   └── convert_oasst.py          # Download and convert dataset
-├── src/businessllmragchat/
-│   ├── fine_tune/                # train.py, evaluate.py
-│   ├── rag_langgraph/            # LangGraph RAG pipeline
-│   └── inference_api/            # serve_vllm.py, fastapi_app.py
-├── inference_api/
-│   ├── Dockerfile.vllm
-│   ├── Dockerfile.fastapi
-│   ├── requirements_vllm.txt
-│   └── requirements_api.txt
-├── streamlit_demo/
-│   ├── app.py
-│   └── requirements.txt
-└── tests/
-    ├── test_train.py
-    └── test_inference.py
+colab_experiment
+├── qlora adaptor training.ipynb # (unused) notebook for QLoRA fine‐tuning
+
+vllm
+├── credential.py # HF & AWS S3 credentials loader
+├── merge_lora.py # merge LoRA adapter into base model
+├── upload_merged_model_to_hf.py # push merged model to Hugging Face
+├── modal_inference.py # Modal App + LLMRunner (✅)
+├── client.py # local client to call Modal API
+├── adapter
+│ ├── adapter_config.json # LoRA adapter config
+│ └── adapter_model.safetensors # LoRA adapter weights
+src\businessllm_rag_chat
 ```
 
----
+### Description
 
-## 🛠️ Requirements
+- `data/convert_oasst_alpaca.py`: Handles dataset downloading, parsing, and merging of OpenAssistant and Alpaca into training-ready JSONL files and upload to AWS s3 bucket.
+- `colab_experiment/qlora adaptor training.ipynb`: Colab notebook running QLoRA fine-tuning on LLaMA 3 8B using A100 GPU.
+- `vllm/` folder contains all scripts related to model merging, uploading, and inference deployment:
+  - `credential.py`: Manages AWS and Hugging Face credentials (recommended to use environment variables or secret managers to keep secrets safe).
+  - `merge_lora.py`: Downloads the LoRA adapter checkpoint and merges it into the base LLaMA 3 8B model.
+  - `upload_merged_model_to_hf.py`: Uploads the merged full model to Hugging Face Hub for serving.
+  - `modal_inference.py`: Defines the Modal application that deploys the merged model with vLLM on an A100 GPU container.
+  - `client.py`: A local client example to invoke the remote inference endpoint on Modal.
+  - `adapter/`: Stores your local LoRA adapter files (`adapter_config.json` and `adapter_model.safetensors`).
 
-- Python 3.10+
-- Poetry
-- EC2 G5.2xlarge (24GB VRAM) or higher
-- Docker
-- Hugging Face account (for model downloading)
-- AWS IAM role with:
-  - `AmazonS3FullAccess`
-  - `bedrock:InvokeModel` (optional, if using Bedrock baseline)
 
----
+## 🗂 Dataset Preparation
 
-## 🧪 Evaluation Metrics
-
-| Metric    | Description                                      |
-|-----------|--------------------------------------------------|
-| **BLEU**  | N-gram overlap between predicted & reference     |
-| **Cosine**| Embedding similarity (sentence-transformers)     |
-| **Judge** | LLM-based preference evaluation (optional)       |
+- Download and parse Alpaca and OpenAssistant datasets.
+- Combine and split into train/eval sets.
+- Upload processed JSONL files to AWS S3 for training.
 
 ---
 
-## 📦 Deployment Plan
+## 🛠 Fine-tuning with QLoRA on Colab (A100 GPU)
 
-1. 🎓 Train models using `train.py`
-2. 🧪 Evaluate & log runs with MLflow
-3. 🥇 Pick best run → serve with FastAPI or vLLM
-4. 🚀 Deploy UI via Streamlit Cloud
-5. 🔁 LangGraph orchestrates retrieval + inference
+- Load LLaMA 3 8B base model with 4-bit quantization using `bitsandbytes`.
+- Prepare model with PEFT `LoRA` adapters.
+- Train on sampled dataset (e.g. 2000 samples) with HuggingFace `Trainer`.
+- Save LoRA adapter checkpoints locally.
+- Upload LoRA adapter to AWS S3 for backup and later retrieval.
 
 ---
 
-## 💼 Why This Project Matters
+## ⚙️ Merge Adapter and Save Merged Model
 
-This project simulates a real-world **AI/ML Engineer** workflow:
-- Model fine-tuning
-- Multi-run comparison & selection
-- Inference optimization (vLLM)
-- Integration with LangGraph RAG
-- Full-stack deployment (backend + frontend)
+- Download LoRA adapter from S3.
+- Load base LLaMA 3 8B.
+- Merge LoRA adapter weights into base model.
+- Save merged model locally.
+- Upload merged model folder to Hugging Face Hub for downstream use.
 
-Ideal as a **portfolio project** to showcase:
-- LLM customization
-- Infra deployment (EC2, Docker)
-- RAG integration for business use cases
-- DevOps-aware ML practices (MLflow + containerization)
+---
+
+## ⚡️ Inference with vLLM on modal.ai
+
+- Define a `modal` app to build a container image with required dependencies (`vllm`, `transformers`, `torch`, `huggingface_hub`).
+- Deploy the merged model from HF Hub onto an A100 GPU-enabled modal container.
+- Use `vllm.LLM` with `SamplingParams` for fast and cost-efficient text generation.
+- Expose a remote `generate` method to run inference with a given prompt.
+- Provide local client script to call remote model seamlessly.
+
+---
+
+
+
+## 🔧 Requirements
+
+- Python 3.8+
+- `transformers`, `datasets`, `bitsandbytes`, `peft`, `torch`, `boto3`
+- `modal` CLI and account setup with A100 GPU support
+- AWS S3 bucket for dataset and adapter storage
+- Hugging Face account and access token for model hosting
+  
+## 🏁 Quick Start
+
+a. **Sign up for Modal**  
+   - Visit https://modal.com and create a free account.  
+   - Install the Modal CLI:  
+     ```bash
+     brew install modal   # macOS (Homebrew)
+     # or
+     pip install modal-cli
+     ```
+   - Authenticate your CLI:
+     ```bash
+     modal login
+     ```
+
+b. **Deploy the GPU inference service**  
+   From the project root, run:
+   ```bash
+   modal deploy vllm/modal_inference.py
+
+  ```
+
+c. **Test locally**  
+   Invoke your remote model from the command line:
+   ```bash
+   python vllm/client.py --prompt "Hello!"
+
+  ```

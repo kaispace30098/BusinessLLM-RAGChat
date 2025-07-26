@@ -6,7 +6,7 @@ import warnings
 import torch
 
 load_dotenv()
-HF_TOKEN = os.getenv("HF_TOKEN")
+HF_TOKEN = os.getenv("HF_TOKEN") #colab_llama3_token
 
 def main():
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -15,18 +15,18 @@ def main():
     adapter_path = os.path.join(base_dir, "adapter")       
     merged_save_path = os.path.join(base_dir, "merged_llama3")  
 
-    # ✅ 載入 base 模型（不使用 device_map）
+    # Load the model
     base = AutoModelForCausalLM.from_pretrained(
         "meta-llama/Meta-Llama-3-8B",
         torch_dtype=torch.float16,
-        device_map=None,  # 直接丟給 GPU，如果爆了就換手動切分
+        device_map=None,  
         token=HF_TOKEN,
         trust_remote_code=True
     )
 
     print(f"[INFO] Loading LoRA adapter from {adapter_path} ...")
 
-    # ✅ base_model_prefix 一定要 "model"（剛剛模型印出來就是）
+    # base_model_prefix mist using "model"
     adapter = PeftModel.from_pretrained(
         base,
         adapter_path,
