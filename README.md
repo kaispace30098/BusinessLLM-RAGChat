@@ -1,9 +1,9 @@
-# State Accountability Business Rule Assistant
+# Business Agent with RAG by finetuned LLM
 
-This project implements a Retrieval-Augmented Generation (RAG) pipeline over your state accountability business‐rule corpus, with:
+This project aims to implement a Retrieval-Augmented Generation (RAG) pipeline over business‐rule corpus/knowledgebase, with:
 
  
-1. **Modal GPU API with vLLM** – completed remote inference endpoint  
+1. **Modal GPU API with vLLM** – Finetuned Foundation model and completed remote inference endpoint  
 2. **LangGraph RAG integration** – Work in progress 
 ---
 
@@ -40,6 +40,7 @@ This project implements a Retrieval-Augmented Generation (RAG) pipeline over you
 
 ---
 ## 🗂 Directory Structure
+```
 data
 ├── convert_oasst_alpaca.py # (unused) data conversion script
 
